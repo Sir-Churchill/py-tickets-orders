@@ -68,7 +68,8 @@ class MovieViewSet(viewsets.ModelViewSet):
             genres = self._params_to_ints(genres)
             queryset = queryset.filter(genres__id__in=genres)
 
-        return queryset
+        return queryset.distinct()
+
 
 class MovieSessionViewSet(viewsets.ModelViewSet):
     queryset = MovieSession.objects.all()
@@ -89,15 +90,19 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         date = self.request.query_params.get("date")
         movie = self.request.query_params.get("movie")
 
-
-
         if date:
-            date_obj = datetime.strptime(date, "%Y-%m-%d").date()
-            queryset = queryset.filter(show_time__date=date_obj)
+            try:
+                date_obj = datetime.strptime(date, "%Y-%m-%d").date()
+                queryset = queryset.filter(show_time__date=date_obj)
+            except ValueError:
+                queryset = queryset.none()
 
         if movie:
-            movie_id = int(movie)
-            queryset = queryset.filter(movie_id=movie_id)
+            try:
+                movie_id = int(movie)
+                queryset = queryset.filter(movie_id=movie_id)
+            except ValueError:
+                queryset = queryset.none()
 
         if self.action == "list":
             queryset = ((queryset
@@ -108,7 +113,9 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
                             - Count("tickets")))
                         .order_by("id"))
 
-        return queryset
+        return queryset.distinct()
+
+
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
@@ -117,3 +124,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return OrderCreateSerializer
         return OrderSerializer
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
