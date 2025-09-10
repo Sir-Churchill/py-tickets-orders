@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.db.models import Count, F
-from rest_framework import viewsets
+from rest_framework import viewsets, pagination
 from cinema.models import Genre, Actor, CinemaHall, Movie, MovieSession, Order
 
 from cinema.serializers import (
@@ -116,9 +116,13 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         return queryset.distinct()
 
 
+class OrderPagination(pagination.PageNumberPagination):
+    page_size = 4
+
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
+    pagination_class = OrderPagination
 
     def get_serializer_class(self):
         if self.action == "create":
