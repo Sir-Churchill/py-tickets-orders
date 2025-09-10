@@ -67,14 +67,18 @@ class MovieViewSet(viewsets.ModelViewSet):
             try:
                 actors = self._params_to_ints(actors)
             except ValueError:
-                raise ParseError("Actors parameter must be a comma-separated list of integers")
+                raise ParseError(
+                    "Actors parameter "
+                    "must be a comma-separated list of integers")
             queryset = queryset.filter(actors__id__in=actors)
 
         if genres:
             try:
                 genres = self._params_to_ints(genres)
             except ValueError:
-                raise ParseError("Genres parameter must be a comma-separated list of integers")
+                raise ParseError(
+                    "Genres parameter "
+                    "must be a comma-separated list of integers")
             queryset = queryset.filter(genres__id__in=genres)
 
         return queryset.distinct()
@@ -114,13 +118,12 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
                 queryset = queryset.none()
 
         if self.action == "list":
-            queryset = Greatest((queryset
-                        .select_related("cinema_hall")
-                        .annotate(
-                            tickets_available=F("cinema_hall__rows")
-                            * F("cinema_hall__seats_in_row")
-                            - Count("tickets")))
-                        .order_by("id"))
+            queryset = Greatest((queryset.select_related(
+                "cinema_hall").annotate(
+                tickets_available=F(
+                    "cinema_hall__rows") * F(
+                    "cinema_hall__seats_in_row") - Count(
+                    "tickets"))).order_by("id"))
 
         return queryset.distinct()
 
