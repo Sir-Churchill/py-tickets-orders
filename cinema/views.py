@@ -1,7 +1,10 @@
 from datetime import datetime
 
 from django.db.models import Count, F
+from django.db.models.functions import Greatest
 from rest_framework import viewsets, pagination
+from rest_framework.exceptions import ParseError
+
 from cinema.models import Genre, Actor, CinemaHall, Movie, MovieSession, Order
 
 from cinema.serializers import (
@@ -61,11 +64,17 @@ class MovieViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(title__icontains=title)
 
         if actors:
-            actors = self._params_to_ints(actors)
+            try:
+                actors = self._params_to_ints(actors)
+            except ValueError:
+                raise ParseError("Actors parameter must be a comma-separated list of integers")
             queryset = queryset.filter(actors__id__in=actors)
 
         if genres:
-            genres = self._params_to_ints(genres)
+            try:
+                genres = self._params_to_ints(genres)
+            except ValueError:
+                raise ParseError("Genres parameter must be a comma-separated list of integers")
             queryset = queryset.filter(genres__id__in=genres)
 
         return queryset.distinct()
@@ -105,7 +114,7 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
                 queryset = queryset.none()
 
         if self.action == "list":
-            queryset = ((queryset
+            queryset = Greatest((queryset
                         .select_related("cinema_hall")
                         .annotate(
                             tickets_available=F("cinema_hall__rows")
